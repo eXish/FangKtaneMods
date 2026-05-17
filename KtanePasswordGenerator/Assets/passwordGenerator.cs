@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using KModkit;
+using System.Text.RegularExpressions;
 
 public class passwordGenerator : MonoBehaviour {
 	public KMAudio Audio;
@@ -23,7 +24,6 @@ public class passwordGenerator : MonoBehaviour {
 	private string convertedLetter = "";
 	private string symbol ="";
     private readonly string[] abc = new[] { "A", "B", "C", "D", "E", "F" };
-    private Dictionary<string, KMSelectable> btnDict = new Dictionary<string, KMSelectable>();
     // Logging
     static int moduleIdCounter = 1;
 	int moduleId;
@@ -33,34 +33,6 @@ public class passwordGenerator : MonoBehaviour {
 
 	// Use this for initialization
 	void Awake () {
-        btnDict = new Dictionary<string, KMSelectable>()
-        {
-            {"@",keypad[0]},
-            {"&",keypad[1]},
-            {"?",keypad[2]},
-            {"*",keypad[3]},
-            {"/",keypad[4]},
-            {"-",keypad[5]},
-            {"1",keypad[6]},
-            {"2",keypad[7]},
-            {"3",keypad[8]},
-            {"4",keypad[9]},
-            {"5",keypad[10]},
-            {"6",keypad[11]},
-            {"7",keypad[12]},
-            {"8",keypad[13]},
-            {"9",keypad[14]},
-            {"0",keypad[15]},
-            {"a",keypad[16]},
-            {"b",keypad[17]},
-            {"c",keypad[18]},
-            {"d",keypad[19]},
-            {"e",keypad[20]},
-            {"f",keypad[21]},
-            {"r",clearButton},
-            {"s",submitButton}
-        };
-
         moduleId = moduleIdCounter++;
 
 		// Assigning buttons
@@ -297,33 +269,49 @@ public class passwordGenerator : MonoBehaviour {
 			StartCoroutine(TimeDisplay()); 
 		}
     #pragma warning disable 414
-    string TwitchHelpMessage = "Use '!{0} press <button>'. Buttons include (S)ubmit, clea(R), or any other on the keypad.";
+    string TwitchHelpMessage = "Use '!{0} press <buttons>'. Buttons include (S)ubmit, (R)eset, any other on the keypad; or '!{0} press (submit|clear)'. The word 'press' can be omitted.";
     #pragma warning restore 414
     IEnumerator ProcessTwitchCommand(string command)
     {
-        command = command.ToLowerInvariant();
-        if(command.StartsWith("press "))
+        command = command.Trim().ToLowerInvariant();
+		Match m = Regex.Match(command, @"^(?:(?:press) +)?(?:([a-f0-9@&?*\/\-sr ]+)|(clear)|(submit))$");
+		if (!m.Success)
+			yield break;
+
+		string keypadButtons = "@&?*/-1234567890abcdef";
+
+        yield return null;
+        if (m.Groups[1].Success)
         {
-            string btns = command.Replace("press ", "").Replace(" ", "");
-            char[] numbers = btns.ToCharArray();
-            List<KMSelectable> btnsToPress = new List<KMSelectable>();
-            foreach (char number in numbers)
-            {
-                if(!btnDict.ContainsKey(number.ToString()))
-                {
-                    yield return null;
-                    yield return "sendtochaterror Invalid button.";
-                    yield break;
-                }
-                btnsToPress.Add(btnDict[number.ToString()]);
-            }
-            yield return null;
-            yield return btnsToPress.ToArray();
+			foreach (char c in m.Groups[1].Value.Replace(" ", ""))
+			{
+				yield return new WaitForSeconds(0.1f);
+				switch (c) {
+					case 's':
+						submitButton.OnInteract();
+						break;
+					case 'r':
+						clearButton.OnInteract();
+						break;
+					default:
+						keypad[keypadButtons.IndexOf(c)].OnInteract();
+						break;
+				}
+			}       
         }
-    	else {
-            yield return null;
-            yield return "sendtochaterror Unrecognised or invalid command.";
-            yield break;
+        else if (m.Groups[2].Success)
+        {
+            yield return new WaitForSeconds(0.1f);
+            clearButton.OnInteract();
         }
+        else if (m.Groups[3].Success)
+        {
+            yield return new WaitForSeconds(0.1f);
+            submitButton.OnInteract();
+        }
+		else
+		{
+			Debug.Log("error");
+		}
     }
 }

@@ -16,6 +16,6 @@ MonoBehaviour:
   author: Fang
   description: "Determine a complex password using several information from the bomb.\r\n\r\nmoduleID:
     pwGenerator\r\n\nModule created by Fang.\r\n\r\nManual: https://ktane.timwi.de/HTML/Password%20Generator.html"
-  version: 1.5
+  version: 1.6a
   outputFolder: build
   previewImage: {fileID: 2800000, guid: 8bc515c8531913e489a18685e0093aef, type: 3}

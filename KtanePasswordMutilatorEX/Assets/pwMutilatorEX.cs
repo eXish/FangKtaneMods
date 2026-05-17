@@ -28,7 +28,7 @@ public class pwMutilatorEX : MonoBehaviour
     public Renderer   modBackground;
     public Material[] Materials;
 
-    private readonly string[] abc = new[] { "A", "B", "C", "D", "E", "F" };
+    private readonly string[] abc = new[] { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
 
     static string[] ignoredModules;
     bool moduleSolved = false;
@@ -49,12 +49,15 @@ public class pwMutilatorEX : MonoBehaviour
     string finalAnswerString;
     string inputAnswerString = "";
 
-    int[] stageInformation;
+    float[,] stageTimes;
     int[] twoFactor, startingNumber, increaseFactorAverage, radix;
     int[] stageAnswer;
 
     float h = 0f;
     float v = 0f;
+    float rememberedET;
+    float rememberedBRT;
+
 
     private Dictionary<string, string> altKeysDict = new Dictionary<string, string>();
     
@@ -65,7 +68,7 @@ public class pwMutilatorEX : MonoBehaviour
 
     float[] times = { 0.00f, 0.00f, 10.00f, 0f }; //Elapsed, bomb RT, Countdown timer, Strike timer 
     float[] countdownTimer = { 0, 0, 0 }; //Delayer, or Reset timer or Input phase >> times[2];
-    float[] defaultTimes = { 5.00f, 300.00f, 180.00f, 5.00f }; //Next stage, Stage reset, Input phase, Timer freeze time
+    float[] defaultTimes = { 5.00f, 120.00f, 180.00f, 5.00f }; //Next stage, Stage reset, Input phase, Timer freeze time
 
     void Awake()
         //Initializations
@@ -141,12 +144,15 @@ public class pwMutilatorEX : MonoBehaviour
 
     void Activate()
     {
+
         totalStage = Math.Max(bomb.GetSolvableModuleNames().Count()/2, 5);
+
         stageAnswer = new int[totalStage];
         twoFactor = new int[totalStage];
         startingNumber = new int[totalStage];
         increaseFactorAverage = new int[totalStage];
         radix = new int[totalStage];
+        stageTimes = new float[totalStage, 2];
         finalAnswer = new char[totalStage];
         InitModule();
     }
@@ -340,18 +346,30 @@ public class pwMutilatorEX : MonoBehaviour
         times[2]  = phases[2] ? countdownTimer[2]: moduleWaiting ? countdownTimer[0] : countdownTimer[1]; //top right time disp
         for (int i = (phases[3] || phases[4] || phases[0] ? 1 : 2), j = 3; i >= 0; i--)
         {
-            if (((phases[1] || phases[2]) && (defaultTimes[0] - countdownTimer[0] <= defaultTimes[3]) && i != 2)) return;
+            if ((currStage != 0 && (phases[1] || phases[2]) && (defaultTimes[0] - countdownTimer[0] <= defaultTimes[3]) && i != 2))
             //animation for temporary stop
+            {
+                timeTexts[0].text = getFormattedTime(rememberedET);
+                timeTexts[1].text = (!ZenModeActive ? "-" : "") + getFormattedTime(rememberedBRT);
+                return;
+            }
+
             if (i == 0 && phases[0] && (currSolved > 0)) i = j;
-            double second = Math.Round(times[i] % 60, 2);
-            double minute = Math.Floor(times[i] / 60 % 60);
-            double hour = Math.Floor(times[i] / 3600);
             if (i == j && phases[0] && (currSolved > 0)) i = 0;
-            timeTexts[i].text = (hour > 0 ? hour.ToString("00") + ":" + minute.ToString("00") + ":" + second.ToString("00")
-                                     : minute.ToString("00") + ":" + (second).ToString("00.00"));
+            timeTexts[i].text = getFormattedTime(times[i]);
             if (i == 1 && !ZenModeActive || (i == 0 && phases[0] && (currSolved > 0))) timeTexts[i].text = "-" + timeTexts[i].text;
         }   
     }
+    string getFormattedTime(float time)
+    {
+        double millisecond = Math.Floor((time * 100) % 100);
+        double second = Math.Floor(time % 60);
+        double minute = Math.Floor(time / 60 % 60);
+        double hour = Math.Floor(time / 3600);
+        return (hour > 0 ? hour.ToString("00") + ":" + minute.ToString("00") + ":" + second.ToString("00")
+                                 : minute.ToString("00") + ":" + second.ToString("00") + "." + millisecond.ToString("00"));
+    }
+
     void inputStage() {                 
         try {
             foreach (string key in altKeysDict.Keys) 
@@ -390,7 +408,7 @@ public class pwMutilatorEX : MonoBehaviour
         radix[currStage] = Random.Range(5, 17);
         int r = radix[currStage];
         startingNumber[currStage] = Random.Range(r*r*r*r, r*r*r*r*r);
-        increaseFactorAverage[currStage] = Random.Range((r*r) +2, (r*r*r)-2);
+        increaseFactorAverage[currStage] = Random.Range((r*r) +1, (r*r*r)-1);
 
         StartCoroutine(DisplayStage());
     }
@@ -412,7 +430,7 @@ public class pwMutilatorEX : MonoBehaviour
         {
             if (increaseFactorPool.Count() == 0)
                 increaseFactorPool = new int[] { increaseFactorAverage[currStage] - 1, increaseFactorAverage[currStage], increaseFactorAverage[currStage] + 1 }.ToList();
-            else rng = Random.Range(0, increaseFactorPool.Count());
+            rng = Random.Range(0, increaseFactorPool.Count());
             rawValue = (rawValue + increaseFactorPool[rng]) % (r*r*r*r);
             displayTextsLeft[1].text = DecimalToArbitrarySystem(rawValue, r);
             increaseFactorPool.RemoveAt(rng);
@@ -428,7 +446,9 @@ public class pwMutilatorEX : MonoBehaviour
             displayTextsLeft[0].text = (twoFactor[currStage] / 1000).ToString("000") + " " + (twoFactor[currStage] % 1000).ToString("000");
             displayTextsLeft[4].text = "  Stage  " + currStage.ToString("000") + " / " + (totalStage - 1).ToString("000");     //"  Stage  000 / 000"
             displayTextsLeft[5].text = "";
-
+            displayTextsRight[0].color = Color.white;
+            displayTextsRight[0].text = getFormattedTime(stageTimes[currStage, 0]);
+            displayTextsRight[1].text = (!ZenModeActive ? "-" : "") + getFormattedTime(stageTimes[currStage, 1]);
             List<int> increaseFactorPool = new int[] { increaseFactorAverage[currStage] - 1, increaseFactorAverage[currStage], increaseFactorAverage[currStage] + 1 }.ToList();
             int rawValue = startingNumber[currStage];
             int r = radix[currStage];
@@ -437,7 +457,7 @@ public class pwMutilatorEX : MonoBehaviour
             {
                 if (increaseFactorPool.Count() == 0)
                     increaseFactorPool = new int[] { increaseFactorAverage[currStage] - 1, increaseFactorAverage[currStage], increaseFactorAverage[currStage] + 1}.ToList();
-                else rng = Random.Range(0, increaseFactorPool.Count());
+                rng = Random.Range(0, increaseFactorPool.Count());
                 rawValue = (rawValue + increaseFactorPool[rng]) % (r * r * r * r);
                 displayTextsLeft[1].text = DecimalToArbitrarySystem(rawValue, r);
                 increaseFactorPool.RemoveAt(rng);
@@ -489,19 +509,28 @@ public class pwMutilatorEX : MonoBehaviour
             4: Radix
         */
     {
-        stageAnswer[currStage] = twoFactor[currStage] % 9 + increaseFactorAverage[currStage] + Convert.ToInt32(Math.Floor(times[0] % 60)) + Convert.ToInt32(Math.Floor(times[1] % 60));
+        stageTimes[currStage, 0] = times[0];
+        stageTimes[currStage, 1] = times[1];
+        rememberedET = times[0];
+        rememberedBRT = times[1];
+
+        double ET = (Math.Floor((rememberedET % 60) * 100) / 100);
+        double BRT = (Math.Floor((rememberedBRT % 60) * 100) / 100);
+        
+        stageAnswer[currStage] = twoFactor[currStage] % 9 + increaseFactorAverage[currStage] + Convert.ToInt32(Math.Floor(ET)) + Convert.ToInt32(Math.Floor(BRT));
         
         Debug.LogFormat
-            ("[Password Mutilator EX #{0}]: Stage {1}: 2FAST: {2}, If = {3} ({4} in Base {5}), CT = {6}+{7}, Cv = {8}", 
+            ("[Password Mutilator EX #{0}]: Stage {1}: 2FAST: {2}, If = {3} ({4} in Base {5}), CT = {6}+{7}, Cv = {3}+{9}+{10}+{11} = {8}", 
             moduleId, currStage, twoFactor[currStage], increaseFactorAverage[currStage],
-            DecimalToArbitrarySystem(increaseFactorAverage[currStage], radix[currStage]), radix[currStage], 
-            Convert.ToInt32(Math.Floor(times[0] % 60)), Convert.ToInt32(Math.Floor(times[1] % 60)), 
-            stageAnswer[currStage]);
+            DecimalToArbitrarySystem(increaseFactorAverage[currStage], radix[currStage]), radix[currStage],
+            ET.ToString("00.00"), BRT.ToString("00.00"), 
+            stageAnswer[currStage],
+            twoFactor[currStage] % 9,
+            Math.Floor(ET), Math.Floor(BRT));
     }
     
     void InputStage()
     {   //Calculate final answer, note down phase start time.
-        Debug.Log(times[0]);
         inputAnswerString = "";
         inputPosition = 1;
         for (int i = 0; i < stageAnswer.Length; i++)
@@ -559,74 +588,16 @@ public class pwMutilatorEX : MonoBehaviour
 	{
         string generatedInput = "";
 
-		if (bomb.GetModuleNames().Contains("Bamboozled Again") || bomb.GetModuleNames().Contains("Ultimate Cycle") || bomb.GetModuleNames().Contains("UltraStores"))
-		{
-			generatedInput = "*DEAD*";
-			Debug.LogFormat("[Password Mutilator EX #{0}]: Bamboozled Again, UltraStores or Ultimate Cycle present, ignoring all other rules.", moduleId);
-			Debug.LogFormat("[Password Mutilator EX #{0}]: The correct input is *DEAD*.", moduleId);
-		}
-		else 
-		{
-			//Part I: First letter of SN
-			char firstletter = bomb.GetSerialNumberLetters().First();
-			var firstCharPos = char.ToUpperInvariant(firstletter) - 'A' + 1;
-
-            string convertedLetter = abc[firstCharPos % 6];
-
-            //Part II: Indicators, Batt, Ports
-            string convertedBatteries = abc[bomb.GetBatteryCount() % 6];
-            string convertedPorts = abc[bomb.GetPortCount() % 6];
-            string convertedIndicators = abc[bomb.GetIndicators().Count() % 6];
-
-			
-			string correctPart2 = "";
-			if (bomb.GetIndicators().Count() == bomb.GetBatteryCount() || bomb.GetIndicators().Count() == bomb.GetPortCount() || bomb.GetBatteryCount() == bomb.GetPortCount())
-			{
-                correctPart2 = convertedPorts + convertedIndicators + convertedBatteries;
-            }
-			else
-			{
-                correctPart2 = convertedBatteries + convertedIndicators + convertedPorts;
-			}
-			// Part III: Symbols
-            string symbol = "";
-			if (containsModule("Question Mark", true))
-				{
-					symbol = "?"; 
-				}
-			else if (containsModule("Astrology", true))
-				{	
-					symbol = "*";
-				}
-			else if (containsModule(new[] { "logic", "boolean" }, false))
-				{	
-					symbol = "&";
-				}
-			else if (containsModule("code", false))
-				{	
-					symbol = "/" ;
-				}
-			else if (containsModule("alphabet", false))
-				{	
-					symbol = "@";
-				}
-			else
-				{	
-					symbol = "-";
-				}
-			// Part IV: Solved, Unsolved, Minutes Remaining
-			int solvedCount = bomb.GetSolvedModuleNames().Count;
-			int unsolvedCount = bomb.GetSolvableModuleNames().Count - bomb.GetSolvedModuleNames().Count;
-			int minutesRemaining = (int) bomb.GetTime() / 60;
-
-			Debug.LogFormat("[Password Mutilator EX #{0}] The submit button was pressed at {1} solve(s), {2} unsolved and {3} min(s) remaining.", moduleId, solvedCount, unsolvedCount, minutesRemaining);
-			int lastDigit = bomb.GetSerialNumberNumbers().Last();
-			int correctPart4 = ( (solvedCount * unsolvedCount * minutesRemaining) + lastDigit ) % 100;
-
-			//Contenating the calculated answer
-			generatedInput = convertedLetter + correctPart2 + symbol + correctPart4;
-		}
-		//Whether is the input correct
+        if (bomb.GetModuleNames().Contains("Bamboozled Again") || bomb.GetModuleNames().Contains("Ultimate Cycle") || bomb.GetModuleNames().Contains("UltraStores"))
+        {
+            generatedInput = "*DEAD*";
+        }
+        else
+        {
+            foreach (char d in bomb.GetSerialNumber())
+                if (Char.IsDigit(d)) generatedInput += abc[int.Parse(d.ToString())];
+                else generatedInput += d;
+        }
         return generatedInput.ToLowerInvariant();
     }
 
@@ -641,9 +612,8 @@ public class pwMutilatorEX : MonoBehaviour
             bomb.GetModuleNames().Any(mod => mod.ToLowerInvariant().Contains((string)Module)));
     }
 
-#pragma warning disable 414
-bool ZenModeActive;
     #pragma warning disable 414
+    bool ZenModeActive;
     readonly string TwitchHelpMessage = "Use !{0} AZC-,... (for inputs) | (l)eft/(u)p/(d)own/(r)ight/(b)ackspace/(c)lear/(s)ubmit (for actions, first letter only). Note that the command is CAPS SENSITIVE and inputs must be same as keyboard labels.";
     #pragma warning restore 414 
 

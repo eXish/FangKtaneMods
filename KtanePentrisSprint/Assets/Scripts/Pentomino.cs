@@ -228,7 +228,7 @@ public class Pentomino {
 			column--;
 		}
 
-		height = gridWidth;
+		height = 2*gridWidth;
 		int thisHeight;
 		for (int x = column; x < column + type.width; x++) {
 			if (!HasColumn (x)) {

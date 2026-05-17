@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Random = UnityEngine.Random;
+using System.Text.RegularExpressions;
 
 public class pentrisSprint : MonoBehaviour {
     public class ModSettingsJSON
@@ -18,27 +19,27 @@ public class pentrisSprint : MonoBehaviour {
 	public Material BoxEmpty;
 	public Material BoxError;
 
-	public KMSelectable ModuleSelectable;
-	public KMSelectable MoveLeftButton;
-	public KMSelectable MoveRightButton;
-	public KMSelectable TurnLeftButton;
-	public KMSelectable TurnRightButton;
-	public KMSelectable DownButton;
-	public KMSelectable MuteButton;
+    public Material solvedMat;
+    public Material strikedMat;
+    public Material normalMat;
+	public Renderer modFrame;
 
+    public KMSelectable ModuleSelectable;
 	public TextMesh numberDisplay;
 	public TextMesh scoreDisplay;
 	public TextMesh timeDisplay;
 	public TextMesh targetDisplay;
 	public KMModSettings modSettings;
+	
 	private PentrisBoard GameBoard;
 
 	private const int G_WIDTH = 10; // Width of grid
+	private const int G_HEIGHT = 20; // Width of grid
 
 	private KMBombModule Module;
-	public KMAudio Audio;
 	private GameObject[,] ObjectGrid;
-	public GameObject[] ScreenGrid;
+    public GameObject[] CellObjects;
+    public GameObject[] ScreenGrid;
 	private Pentomino tetr;
 	private int upNext;
 	private int Score;
@@ -50,11 +51,10 @@ public class pentrisSprint : MonoBehaviour {
 	private float elapsedTime;
 	private string elapsedTimeDisplay;
 	private bool started = false;
-	private bool muted = false;
 	private bool moduleSolved = false;
 	private bool holdingleft, holdingright;
+
     private List<int> grabBag = new List<int>();
-	KMAudio.KMAudioRef soundEffect;
 
 
 	void SetMaterial(GameObject go, Material mat)
@@ -64,7 +64,7 @@ public class pentrisSprint : MonoBehaviour {
 
 	void UpdateGrid()
 	{
-		for (int y = 0; y < G_WIDTH; y++) {
+		for (int y = 0; y < G_HEIGHT; y++) {
 			for (int x = 0; x < G_WIDTH; x++) {
 				GameObject go = ObjectGrid [x, y];
 
@@ -296,11 +296,12 @@ public class pentrisSprint : MonoBehaviour {
 				} else {
 					UpdateGrid ();
 					Module.HandlePass ();
+					modFrame.material = solvedMat;
 					moduleSolved = true;
 					tetr = null;
 					timeDisplay.color = new Color (0, 255, 0);
-					if (soundEffect != null) soundEffect.StopSound();
-					Debug.LogFormat("[Pentris Sprint #{0}] {1} is completed with a score of {2}, in {3}.", moduleId, targetDisplay.text, Score, elapsedTimeDisplay);				}
+					Debug.LogFormat("[Pentris Sprint #{0}] {1} is completed with a score of {2}, in {3}.", moduleId, targetDisplay.text, Score, elapsedTimeDisplay);
+				}
 				UpdateGrid ();
 			}
             else
@@ -309,7 +310,7 @@ public class pentrisSprint : MonoBehaviour {
                 Score -= 200;
 				elapsedTime += 20;
 				if (Score < 0) Score = 0;
-				GameBoard = new PentrisBoard(G_WIDTH, G_WIDTH);
+				GameBoard = new PentrisBoard(G_WIDTH, G_HEIGHT);
 				tetr = new Pentomino (G_WIDTH, GameBoard, GetPiece());
                 UpdateGrid();
             }
@@ -319,26 +320,17 @@ public class pentrisSprint : MonoBehaviour {
 	void Awake()
 	{
 		Module = GetComponent<KMBombModule> ();
-
-		this.ModuleSelectable.OnInteract += delegate
+        ModuleSelectable.OnInteract += delegate () { focused = true; return true; };
+        ModuleSelectable.OnDefocus += delegate () { focused = false; };
+        this.ModuleSelectable.OnInteract += delegate
         {
             if (!started)
             {
                 OnActivation();
-				if (soundEffect == null) soundEffect = Audio.PlaySoundAtTransformWithRef("tetrisTheme", transform);
             }
             started = true;
             return true;
         };
-        MoveLeftButton.OnInteract += delegate 		{ MoveLeft(); holdingleft = true; StartCoroutine(MoveLeftnew()); GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform); return false; };
-        MoveLeftButton.OnInteractEnded += delegate 	{ holdingleft = false; };
-        MoveRightButton.OnInteract += delegate 		{ MoveRight(); holdingright = true; StartCoroutine(MoveRightnew()); GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform); return false; };
-        MoveRightButton.OnInteractEnded += delegate { holdingright = false; };
-
-		TurnLeftButton.OnInteract += delegate() { return TurnLeft (); };
-		TurnRightButton.OnInteract += delegate() { return TurnRight (); };
-		DownButton.OnInteract += delegate() { return Down (); };
-		MuteButton.OnInteract += delegate() { return Mute (); };
 
 		//Module.OnActivate += OnActivation;
 
@@ -348,18 +340,15 @@ public class pentrisSprint : MonoBehaviour {
 		TurnRightButton.OnInteract += delegate() { return TurnRight (); };
 		DownButton.OnInteract += delegate() { return Down (); };*/
 
-		ObjectGrid = new GameObject[G_WIDTH, G_WIDTH];
+		ObjectGrid = new GameObject[G_WIDTH, G_HEIGHT];
 
-		GameBoard = new PentrisBoard (G_WIDTH, G_WIDTH);
+		GameBoard = new PentrisBoard (G_WIDTH, G_HEIGHT);
 
 		// Populate the grid
 		for (int x = 0; x < G_WIDTH; x++) {
-			GameObject col = Board.transform.Find ("Col" + x).gameObject;
-			for (int y = 0; y < G_WIDTH; y++) {
-				GameObject go = col.transform.Find ("Quad" + y).gameObject;
-				go.SetActive (false);
-
-				ObjectGrid [x, G_WIDTH - y - 1] = go;
+			for (int y = 0; y < G_HEIGHT; y++) {
+				CellObjects[x * 20 + y].SetActive (false);
+				ObjectGrid [x, G_HEIGHT - y - 1] = CellObjects[x * 20 + y];
 			}
 		}
 
@@ -384,13 +373,6 @@ public class pentrisSprint : MonoBehaviour {
 		UpdateGrid ();
 	}
 
-	protected void OnDeactivation()
-	{
-
-	}
-
-
-
 	void MoveLeft()
 	{
 		if (tetr != null) {
@@ -404,41 +386,6 @@ public class pentrisSprint : MonoBehaviour {
 			tetr.MoveRight ();
 			UpdateGrid ();
 		}
-	}
-	IEnumerator MoveLeftnew()
-	{
-		//GetComponent<KMAudio> ().PlaySoundAtTransform ("part1.wav", transform);
-		float elapsedTime = 0f;
-        while (holdingleft)
-        {
-            elapsedTime += Time.deltaTime;
-
-		if (elapsedTime >= .3f && !TwitchPlaysActive)
-            {
-				if (tetr != null) {
-					tetr.MoveLeft ();
-					UpdateGrid ();
-				}
-            }
-            yield return null;
-        }
-	}
-	IEnumerator MoveRightnew()
-	{
-		float elapsedTime = 0f;
-        while (holdingright)
-        {
-            elapsedTime += Time.deltaTime;
-
-            if (elapsedTime >= .3f && !TwitchPlaysActive)
-            {
-				if (tetr != null) {
-					tetr.MoveRight ();
-					UpdateGrid ();
-				}
-            }
-            yield return null;
-        }
 	}
 
 	bool TurnLeft()
@@ -467,52 +414,6 @@ public class pentrisSprint : MonoBehaviour {
 		ApplyPentomino ();
 		return false;
 	}
-	bool Mute()
-	{
-		if (soundEffect != null) {
-			soundEffect.StopSound();
-			soundEffect = null;
-		}
-		else soundEffect = Audio.PlaySoundAtTransformWithRef("tetrisTheme", transform);
-
-		return false;
-	}
-	bool TwitchPlaysActive;
-    public readonly string TwitchHelpMessage = "Each command is a letter which can be stringed together. a: move left, d: move right, q: turn left, e: turn right, s: drop, m: mute.";
-
-    public IEnumerator ProcessTwitchCommand(string command)
-    {
-        Dictionary<char, KMSelectable> buttonMap = new Dictionary<char, KMSelectable>()
-        {
-            { 'a', MoveLeftButton },
-            { 'd', MoveRightButton },
-            { 'q', TurnLeftButton },
-            { 'e', TurnRightButton },
-            { 's', DownButton },
-			{ 'm', MuteButton}
-        };
-
-        var buttons = command.ToLowerInvariant().Replace(" ", "").Select(character =>
-        {
-            KMSelectable button;
-            if (buttonMap.TryGetValue(character, out button))
-            {
-                return button;
-            }
-
-            return null;
-        });
-
-        if (buttons.Contains(null))
-            yield break;
-
-        yield return null;
-        foreach (KMSelectable selectable in buttons)
-        {
-            selectable.OnInteract();
-            yield return new WaitForSeconds(0.05f);
-        }
-    }
 	void Update() {
 		if (started && !moduleSolved) {
 			elapsedTime += Time.deltaTime;
@@ -566,22 +467,66 @@ public class pentrisSprint : MonoBehaviour {
 			}
 			timeDisplay.text = "T+" + elapsedTimeDisplay;
 		}
-		if (moduleSolved) {
-			if (soundEffect != null) {
-				soundEffect.StopSound();
-				soundEffect = null;
-			}
-		}
-	}
+        if (focused)
+            for (int i = 0; i < TheKeys.Count(); i++)
+            {
+                if (Input.GetKeyDown(TheKeys[i]))
+                {
+                    handlePress(i);
+                    buttonHeld[i] = true;
+                }
+                if (Input.GetKeyUp(TheKeys[i]))
+                    buttonHeld[i] = false;
+            }
+    }
 
-	void OnExplode() {
-		if (soundEffect != null)
+
+    private KeyCode[] TheKeys = {
+        KeyCode.LeftArrow,  KeyCode.RightArrow, KeyCode.Z,  KeyCode.X,  KeyCode.UpArrow,  KeyCode.DownArrow,    KeyCode.Space, //KeyCode.C,
+        KeyCode.A,          KeyCode.D,          KeyCode.Q,  KeyCode.E,  KeyCode.W,        KeyCode.S
+    };
+    private bool focused = false;
+    private bool[] buttonHeld = new bool[13];
+
+    void handlePress(int keypos)
+    {
+        if (tetr != null && focused)
         {
-            soundEffect.StopSound();
-            soundEffect = null;
+            if (keypos % 7 == 5 && TwitchPlaysActive) Down();
+            else switch (keypos % 7)
+                {         //KeyCode.LeftArrow, KeyCode.RightArrow,KeyCode.Z, KeyCode.X,KeyCode.UpArrow,KeyCode.DownArrow,KeyCode.Space
+                    case 0: MoveLeft(); break;
+                    case 1: MoveRight(); break;
+                    case 2: TurnLeft(); break;
+                    case 3: TurnRight(); break;
+                    case 4: TurnRight(); break;
+                    case 5: break;
+                    case 6: Down(); break;
+                }
+            StartCoroutine(handleHeld(keypos));
         }
-	}
-	
+    }
+    IEnumerator handleHeld(int keypos)
+    {
+        float heldTime = 0f;
+        yield return null;
+        while (buttonHeld[keypos] && !TwitchPlaysActive)
+        {
+            heldTime += Time.deltaTime;
+            yield return null;
+			if (heldTime >= .3f && !TwitchPlaysActive)
+            {
+                yield return null;
+                switch (keypos % 7)
+                {
+                    case 0: MoveLeft(); break;
+                    case 1: MoveRight(); break;
+                    default: break;
+                }
+            }
+        }
+    }
+
     int FindThreshold()
     {
         try
@@ -589,49 +534,49 @@ public class pentrisSprint : MonoBehaviour {
             ModSettingsJSON settings = JsonConvert.DeserializeObject<ModSettingsJSON>(modSettings.Settings);
             if (settings != null)
             {
-                if (settings.linesToClear < 10)
-                    return 10;
+                if (settings.linesToClear < 5)
+                    return 5;
                 else if (settings.linesToClear > 10000)
                     return 10000;
                 else return settings.linesToClear;
             }
-            else return 40;
+            else return 20;
         }
         catch (JsonReaderException e)
         {
             Debug.LogFormat("[Pentris Sprint #{0}] JSON reading failed with error {1}, using default number.", moduleId, e.Message);
-            return 40;
+            return 20;
+        }
+    }
+    bool TwitchPlaysActive;
+    public readonly string TwitchHelpMessage = "Press keys with !{0} AZ DX; possible keys are WASD, ZX/QE, and S or _ or / to hard drop.";
+
+    public IEnumerator ProcessTwitchCommand(string command)
+    {
+        command = command.ToUpperInvariant().Replace(" ", "");
+        if (!Regex.IsMatch(command, @"^[ZXQEWASD/_]+$")) yield break;
+        else
+        {
+            yield return null;
+            for (int i = 0; i < command.Length; i++)
+            {
+                yield return new WaitForSeconds(.1f);
+                switch (command[i])
+                {
+                    case 'A': handlePress(0); break;
+                    case 'D': handlePress(1); break;
+                    case 'Z': handlePress(2); break;
+                    case 'Q': handlePress(2); break;
+                    case 'X': handlePress(3); break;
+                    case 'E': handlePress(3); break;
+                    case 'W': handlePress(4); break;
+                    case 'S': handlePress(6); break;
+                    case '/': handlePress(6); break;
+                    case '_': handlePress(6); break;
+                }
+            }
         }
     }
 
-	/*void Update()
-	{
-		if (tetr != null) {
-			bool moved = false;
-			if (Input.GetKeyDown ("q")) {
-				tetr.MoveLeft ();
-				moved = true;
-			}
-			if (Input.GetKeyDown ("e")) {
-				tetr.MoveRight ();
-				moved = true;
-			}
-			if (Input.GetKeyDown ("a")) {
-				tetr.TurnLeft ();
-				moved = true;
-			}
-			if (Input.GetKeyDown ("d")) {
-				tetr.TurnRight ();
-				moved = true;
-			}
-			if (Input.GetKeyDown ("s")) {
-				ApplyPentomino ();
-				moved = true;
-			}
 
-			if (moved) {
-				UpdateGrid ();
-			}
-		}
-	}*/
 }

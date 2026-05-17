@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assembly-CSharp", "Assembly-CSharp.csproj", "{4567CB68-3D9A-AFD8-B085-0E7B16E1345E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "pentrisSprint", "pentrisSprint.csproj", "{EDBF3748-BC93-9639-8B8F-CA60A77F12CB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assembly-CSharp-Editor", "Assembly-CSharp-Editor.csproj", "{F8D691B5-546F-7391-5F62-B8F94BDCDC65}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "pentrisSprint-Editor", "pentrisSprint-Editor.csproj", "{4A3669CA-3795-E890-A7F4-4CE25F81E18D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,14 +11,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{4567CB68-3D9A-AFD8-B085-0E7B16E1345E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4567CB68-3D9A-AFD8-B085-0E7B16E1345E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4567CB68-3D9A-AFD8-B085-0E7B16E1345E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4567CB68-3D9A-AFD8-B085-0E7B16E1345E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F8D691B5-546F-7391-5F62-B8F94BDCDC65}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F8D691B5-546F-7391-5F62-B8F94BDCDC65}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F8D691B5-546F-7391-5F62-B8F94BDCDC65}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F8D691B5-546F-7391-5F62-B8F94BDCDC65}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDBF3748-BC93-9639-8B8F-CA60A77F12CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDBF3748-BC93-9639-8B8F-CA60A77F12CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDBF3748-BC93-9639-8B8F-CA60A77F12CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDBF3748-BC93-9639-8B8F-CA60A77F12CB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A3669CA-3795-E890-A7F4-4CE25F81E18D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A3669CA-3795-E890-A7F4-4CE25F81E18D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A3669CA-3795-E890-A7F4-4CE25F81E18D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A3669CA-3795-E890-A7F4-4CE25F81E18D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

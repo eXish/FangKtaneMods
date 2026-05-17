@@ -173,7 +173,6 @@ public class passwordDestroyer : MonoBehaviour
         Generate2FA();
         TimeDisplay();
         StartCoroutine(display1Cycle());
-        Debug.LogFormat("[Password Destroyer #{0}]: Version v2.1", moduleId);
         Debug.LogFormat("[Password Destroyer #{0}]: Initial base numbers are {1} and {2}, with starting 2FA of {3} {4}.", moduleId, CountUpBaseNumber, increaseFactor, identityDigit1, identityDigit2);
     }
     //
@@ -676,10 +675,12 @@ public class passwordDestroyer : MonoBehaviour
     IEnumerator ProcessTwitchCommand(string command)
     {
         command = command.ToLowerInvariant().Trim();
-        Match m = Regex.Match(command, @"^(?:(press ([0-9]+))|(toggle ([1-3]+))|(time|clear|split)|((submit|split)\s*(?:at|on)?\s*([0-9]+:)?([0-9]+):([0-5][0-9]))|(s\s*([0-9]{7})\s*([01]{3})\s*([0-9]+:)?([0-9]+):([0-5][0-9])))$");
+        Match m = Regex.Match(
+            command, 
+            @"^(?:(press ((?:[0-9 ]+)|(?:clear)))|(toggle ([1-3 ]+))|(time|clear|split)|((submit|split)\s*(?:at|on)?\s*([0-9]+:)?([0-9]+):([0-5][0-9]))|(s\s*([0-9]{7})\s*([01]{3})\s*([0-9]+:)?([0-9]+):([0-5][0-9])))$");
         /*Capture Groups:
             1.  press
-            2.  .. what button
+            2.  .. what button / clear?
             3.  toggle
             4.  .. what switch
             5.  time/clear/split
@@ -697,6 +698,11 @@ public class passwordDestroyer : MonoBehaviour
         */
         if (!m.Success || (m.Groups[6].Success && m.Groups[8].Success && int.Parse(m.Groups[9].Value)> 59))
             yield break;
+        if (m.Groups[5].Success && m.Groups[5].Value == "time")
+        {
+            yield return "sendtochat!h Current Time: " + DateTime.Now.ToString("MMMM dd") + ", " + DateTime.Now.ToString("HH:mm:ss") + "; Current Display Time: " + elapsedTimeDisplay;
+            yield break;
+        }
         yield return null;
         if (m.Groups[11].Success && !(m.Groups[14].Success && int.Parse(m.Groups[15].Value) > 59)) {
             clearButton.OnInteract();
@@ -706,7 +712,7 @@ public class passwordDestroyer : MonoBehaviour
                 keypad[int.Parse(number.ToString())].OnInteract();
             }
             yield return null;
-            char[] desState = m.Groups[13].Value.ToCharArray();
+            char[] desState = m.Groups[13].Value.Replace(" ", "").ToCharArray();
             for (int i = 0; i < 3; i++) {
                 yield return null;
                 if (Switches_State[i] != desState[i]) Switches[i].OnInteract();
@@ -719,14 +725,19 @@ public class passwordDestroyer : MonoBehaviour
             submitButton.OnInteract();
         }
         else if (m.Groups[1].Success) {
-            char[] numbers = m.Groups[2].Value.ToCharArray();
+            if (m.Groups[2].Value == "clear")
+            {
+                clearButton.OnInteract();
+                yield break;
+            }
+            char[] numbers = m.Groups[2].Value.Replace(" ", "").ToCharArray();
             foreach (char number in numbers) {
                 yield return new WaitForSeconds(0.1f);
                 keypad[int.Parse(number.ToString())].OnInteract();
             }
         }
         else if (m.Groups[3].Success) {
-            char[] numbers = m.Groups[4].Value.ToCharArray();
+            char[] numbers = m.Groups[4].Value.Replace(" ", "").ToCharArray();
             foreach (char number in numbers) {
                 yield return new WaitForSeconds(0.1f);
                 Switches[int.Parse(number.ToString()) - 1].OnInteract();
@@ -734,14 +745,13 @@ public class passwordDestroyer : MonoBehaviour
         }
         else if (m.Groups[5].Success) {
             switch (m.Groups[5].Value) {
-                case "time": 
-                    yield return "sendtochat Current Time: " + DateTime.Now.ToString("MMMM dd") + ", "+ DateTime.Now.ToString("HH:mm:ss") +"; Current Display Time: " + elapsedTimeDisplay;
-                    break;
                 case "clear":
                     clearButton.OnInteract();
                     break;
                 case "split":
                     screen.OnInteract();
+                    break;
+                default:
                     break;
             }
         }

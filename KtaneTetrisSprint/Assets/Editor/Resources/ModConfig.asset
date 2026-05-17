@@ -16,6 +16,6 @@ MonoBehaviour:
   author: Fang
   description: "Usain Tetris? Asian Bolt?\n\r\nmoduleID: tetrisSprint\n\nModule created
     by Fang.\r\n\r\nManual: https://ktane.timwi.de/HTML/Tetris%20Sprint.html"
-  version: 1.47
+  version: 1.48
   outputFolder: D:\Steam\steamapps\common\Keep Talking and Nobody Explodes\mods
   previewImage: {fileID: 2800000, guid: 2b3b52d0f5e55d947b24d6fe59c3fe74, type: 3}

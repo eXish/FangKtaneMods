@@ -14,8 +14,8 @@ MonoBehaviour:
   id: pentrisSprint
   title: Pentris Sprint
   author: Fang
-  description: "The type of something-mino that everyone [strike]hates[/strike] likes!\n\r\nmoduleID:
-    pentrisSprint\n\nModule created by Fang.\r\n\r\nManual: https://ktane.timwi.de/HTML/Pentris%20Sprint.html"
-  version: 1.02
+  description: "The type of something-mino that everyone ~~hates~~ likes!\nmoduleID:
+    pentrisSprint\r\n\r\nModule created by Fang.\r\n\r\nManual: https://ktane.timwi.de/HTML/Pentris%20Sprint.html"
+  version: v1.0
   outputFolder: build
-  previewImage: {fileID: 2800000, guid: 2b3b52d0f5e55d947b24d6fe59c3fe74, type: 3}
+  previewImage: {fileID: 2800000, guid: 28985da29e93d3f42a6bda077c947515, type: 3}

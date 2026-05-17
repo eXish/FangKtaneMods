@@ -272,7 +272,7 @@ public class tetrisSprint : MonoBehaviour {
 	public readonly string TwitchHelpMessage = "Press keys with !{0} AZ DX; possible keys are WASD, ZX/QE, and _ or / to hard drop.";
 	public IEnumerator ProcessTwitchCommand(string command)
     {
-		command = command.ToUpperInvariant();
+		command = command.ToUpperInvariant().Replace(" ", "");
 		if (!Regex.IsMatch(command, @"^[ZXQEWASD/_]+$")) yield break;
 		else {
 			yield return null;
